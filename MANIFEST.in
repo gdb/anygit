@@ -1,3 +1,0 @@
-include anygit/config/deployment.ini_tmpl
-recursive-include anygit/public *
-recursive-include anygit/templates *

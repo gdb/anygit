@@ -11,10 +11,15 @@ module Anygit
     end
 
     def run
-      i = 0
+      start = Time.now
 
       Rugged::Index.iterate_packfile(@path) do |processed, total, type, sha1, data|
-        Anygit.log.info("Processed #{processed} / #{total} objects") if processed % 100 == 0
+        if processed % 100 == 0
+          elapsed = Time.now - start
+          rps = processed / elapsed
+          remaining = (total - processed) / rps
+          Anygit.log.info("Processed #{processed} / #{total} objects in #{format_time(elapsed)}. That's #{rps} records per second, so there should be about #{format_time(remaining)} remaining")
+        end
 
         store_object(type, sha1)
 
@@ -153,6 +158,22 @@ module Anygit
         next if $1 == ''
 
         blk.call($1, $2)
+      end
+    end
+
+    def format_time(a)
+      case a
+      when 0 then 'no time'
+      when 1 then 'a second'
+      when 2..59 then a.to_s+' seconds'
+      when 60..119 then 'a minute' #120 = 2 minutes
+      when 120..3540 then (a/60).to_i.to_s+ ' minutes'
+      when 3541..7100 then 'an hour' # 3600 = 1 hour
+      when 7101..82800 then ((a+99)/3600).to_i.to_s+ ' hours'
+      when 82801..172000 then 'tomorrow' # 86400 = 1 day
+      when 172001..518400 then ((a+800)/(60*60*24)).to_i.to_s+ ' days'
+      when 518400..1036800 then 'a week'
+      else return (a/518400).to_s + ' weeks'
       end
     end
   end

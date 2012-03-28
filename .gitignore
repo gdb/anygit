@@ -1,11 +1,1 @@
-*.pyc
-.\#*
-\#*
-*~
-development.db
-anygit.egg-info
 data
-lib
-conf/anygit-client.*
-conf/anygit.ini
-web_scripts/development.log

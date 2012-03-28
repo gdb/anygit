@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+require 'optparse'
+
+require File.join(File.dirname(__FILE__), '../lib/anygit')
+
+module Anygit
+  class InitDB
+    def initialize(upgrade)
+      @upgrade = upgrade
+    end
+
+    def run
+      if @upgrade
+        DataMapper.auto_upgrade!
+      else
+        DataMapper.auto_migrate!
+      end
+    end
+  end
+end
+
+def main
+  options = {}
+  optparse = OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} [options]"
+
+    opts.on('-h', '--help', 'Display this message') do
+      puts opts
+      exit(1)
+    end
+
+    opts.on('-f', '--force', 'Drop existing data and reinit database') do
+      options[:force] = true
+    end
+
+    opts.on('-u', '--upgrade', 'Upgrade the database') do
+      options[:upgrade] = true
+    end
+  end
+  optparse.parse!
+
+  if ARGV.length != 0
+    puts optparse
+    return 1
+  end
+
+  if !options[:force] && !options[:upgrade]
+    puts "Must pass a -f or -u"
+    puts optparse
+    return 1
+  end
+
+  upgrade = options[:upgrade]
+
+  Anygit::Model.init
+
+  runner = Anygit::InitDB.new(upgrade)
+  runner.run
+  return 0
+end
+
+if $0 == __FILE__
+  ret = main
+  begin
+    exit(ret)
+  rescue TypeError
+    exit(0)
+  end
+end

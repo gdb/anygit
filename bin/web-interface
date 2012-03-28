@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+require 'optparse'
+
+require File.join(File.dirname(__FILE__), '../lib/anygit')
+
+module Anygit
+  class WebInterfaceRunner
+    def run
+      Anygit::WebInterface.run!
+    end
+  end
+end
+
+def main
+  options = {}
+  optparse = OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} [options]"
+
+    opts.on('-h', '--help', 'Display this message') do
+      puts opts
+      exit(1)
+    end
+  end
+  optparse.parse!
+
+  if ARGV.length != 0
+    puts optparse
+    return 1
+  end
+
+  runner = Anygit::WebInterfaceRunner.new
+  runner.run
+  return 0
+end
+
+if $0 == __FILE__
+  ret = main
+  begin
+    exit(ret)
+  rescue TypeError
+    exit(0)
+  end
+end

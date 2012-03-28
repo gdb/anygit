@@ -6,6 +6,7 @@ $:.unshift(File.dirname(__FILE__))
 
 require 'anygit/model'
 require 'anygit/util'
+require 'anygit/web_interface'
 
 module Anygit
   @@log = Logger.new($stdout)

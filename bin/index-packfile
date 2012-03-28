@@ -107,7 +107,7 @@ module Anygit
         when 'tree': tree = value
         when 'parent': parents << value
         else
-          raise "Unrecognized key: #{key.inspect} (value: #{value.inspect})" unless ['author', 'committer', 'mergetag'].include?(key)
+          raise "Unrecognized key: #{key.inspect} (value: #{value.inspect})" unless ['author', 'committer', 'mergetag', 'encoding'].include?(key)
         end
       end
 

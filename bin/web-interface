@@ -28,6 +28,8 @@ def main
     return 1
   end
 
+  Anygit::Model.init
+
   runner = Anygit::WebInterfaceRunner.new
   runner.run
   return 0

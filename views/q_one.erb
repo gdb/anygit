@@ -1,0 +1,7 @@
+<p> Unique result! </p>
+
+<div>
+<% @git_objects.each do |git_object| %>
+<p> <%=h git_object.hex_sha1 %> (<%=h git_object.type %>)</p>
+<% end %>
+</div>

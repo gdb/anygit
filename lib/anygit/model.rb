@@ -37,6 +37,10 @@ module Anygit
       property :sha1, String, SHA1_KEY_OPTS
       property :type, Enum[:commit, :type, :tag, :blob]
       property :created_at, DateTime
+
+      def hex_sha1
+        Util.sha1_to_hex(sha1)
+      end
     end
 
     class ObjectRepo
@@ -53,7 +57,7 @@ module Anygit
 
       # Requires my patches to dm-core / dm-migrations
       property :source, String, SHA1_KEY_OPTS
-      property :target, String, SHA1_KEY_OPTS
+      property :target, String, SHA1_KEY_OPTS.merge(:index => true)
       property :created_at, DateTime
     end
   end

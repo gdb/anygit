@@ -1,0 +1,9 @@
+<p> There are <b><%=h @collection.count %></b> possible objects starting with <%=h @sha1 %> </p>
+
+<div>
+<p> Here are the first <%=h @limit %>: </p>
+
+<% @collection.each do |object| %>
+<p> <%=h object.hex_sha1 %> </p>
+<% end %>
+</div>

@@ -11,18 +11,13 @@ module Anygit
     end
 
     def run
-      Rugged::Index.iterate_packfile(@path) do |type, sha1|
-        case type
-        when :commit: store_commit(sha1)
-        when :tree: store_tree(sha1)
-        when :tag: store_tag(sha1)
-        when :blob: store_blob(sha1)
-        else
-          raise "Invalid type: #{type.inspect}"
-        end
-      end
+      i = 0
 
-      Rugged::Index.iterate_packfile(@path) do |type, sha1, data|
+      Rugged::Index.iterate_packfile(@path) do |processed, total, type, sha1, data|
+        Anygit.log.info("Processed #{processed} / #{total} objects") if processed % 100 == 0
+
+        store_object(type, sha1)
+
         # TODO: have iterate_packfile pass through git objects, and/or
         # add a parsing interface to Rugged.
         case type
@@ -38,36 +33,16 @@ module Anygit
 
     private
 
-    def store_commit(sha1)
+    def store_object(type, sha1)
       wrap_duplicates do
-        Model::CommitRepo.create(
-          :sha1 => Util.sha1_to_bytes(sha1),
-          :repo => @repo
+        Model::GitObject.create(
+          :type => type,
+          :sha1 => Util.sha1_to_bytes(sha1)
           )
       end
-    end
 
-    def store_tree(sha1)
       wrap_duplicates do
-        Model::TreeRepo.create(
-          :sha1 => Util.sha1_to_bytes(sha1),
-          :repo => @repo
-          )
-      end
-    end
-
-    def store_tag(sha1)
-      wrap_duplicates do
-        Model::TagRepo.create(
-          :sha1 => Util.sha1_to_bytes(sha1),
-          :repo => @repo
-          )
-      end
-    end
-
-    def store_blob(sha1)
-      wrap_duplicates do
-        Model::BlobRepo.create(
+        Model::ObjectRepo.create(
           :sha1 => Util.sha1_to_bytes(sha1),
           :repo => @repo
           )
@@ -78,45 +53,44 @@ module Anygit
       begin
         blk.call
       rescue DataObjects::IntegrityError => e
-        Anygit.log.info("Attempt to make duplicate object: #{e.message}")
+        Anygit.log.debug("Attempt to make duplicate object: #{e.message}")
       end
     end
 
     # "tree 460a692e68fa98c70e92380489e547bb0ce3f499\nparent e5a9524f345692f48292ef4d1f2420697e07c193\nparent ada7ba3a1964b790eb478332dc43d6046f49dcda\nauthor Vicent Mart\303\255 <tanoku@gmail.com> 1331485158 -0700\ncommitter Vicent Mart\303\255 <tanoku@gmail.com> 1331485158 -0700\n\nMerge pull request #45 from yandy/patch-2\n\ninspect method is called recursively"
     def index_commit(sha1, data)
       tree, parents = parse_commit(data)
-      Anygit.log.info("Commit #{sha1} has tree: #{tree.inspect}, parents: #{parents.inspect}")
-      wrap_duplicates do
-        Model::TreeCommit.create(
-          :source => Util.sha1_to_bytes(sha1),
-          :target => Util.sha1_to_bytes(tree)
-          )
-      end
-
-      parents.each do |parent|
-        wrap_duplicates do
-          Model::CommitCommit.create(
-            :source => Util.sha1_to_bytes(sha1),
-            :target => Util.sha1_to_bytes(parent)
-            )
-        end
-      end
+      Anygit.log.debug("Commit #{sha1} has tree: #{tree.inspect}, parents: #{parents.inspect}")
+      store_pointer_records(sha1, [tree] + parents)
     end
 
     # "100644 .gitignore\000\256k\344\257\264\016\377\201{\252\352\e46d~\rE\037\021100644 API\000YZ7\341\327\360\306B\363\201K\247\204\004Fy\301\377\324\303100644 Gemfile\000#\016\027\372\210\276\177&@\005\347\217<0\310\320\212\000S\024100644 Gemfile.lock\000\345CA4d\356:=\257\351\334\f#\262\323\374G\254\220|100644 LICENSE\000\3600\022\234\034kb\000\354=\217\213{fq\fYpo\361100644 README.md\000\030\354y(Z&\352b\001::&\336\030t\252\276O\243#100644 Rakefile\000\314\264\221\rh\305P\bL\251\377v:=*\270G)V[100644 TODO.txt\000\232c\220\177WV\226*\005\003m{T\ve\240u\3078\026100644 USAGE.rb\000\331\e;\233\020\315yw;B\361\235\276c\272\312m{` 40000 ext\000L\362\205d\263\001\016Q\252\221\323\f8\230K\213_\207\363\21040000 lib\000\243\351\006RE\367\3464\201h%5\355l\263W\030\254\000\346100644 rugged.gemspec\000\235\210v`&\027\302u\rw\303\335\224\031\200\310\206\204\374L40000 test\000*\253\206\b\326\320\375\351\231W\306\0028/\364\334\233S\341\340"
     def index_tree(sha1, data)
       children = parse_tree(data)
-      Anygit.log.info("Tree #{sha1} has children: #{children.inspect}")
+      Anygit.log.debug("Tree #{sha1} has children: #{children.inspect}")
+      store_pointer_records(sha1, children)
     end
 
     # "object ec55c6ed695841b7453633f0c81187f0c4a11069\ntype commit\ntag v0.1.0\ntagger Scott Chacon <schacon@gmail.com> 1290556375 -0800\n\ninitial tag for version 0.1.0\n"
     def index_tag(sha1, data)
       object, type = parse_tag(data)
-      Anygit.log.info("Tag #{sha1} has object: #{object} (#{type})")
+      Anygit.log.debug("Tag #{sha1} has object: #{object} (#{type})")
+      store_pointer_records(sha1, [object])
     end
 
     def index_blob(sha1)
-      Anygit.log.info("Blob #{sha1} found")
+      Anygit.log.debug("Blob #{sha1} found")
+    end
+
+    def store_pointer_records(source, targets)
+      targets.each do |target|
+        wrap_duplicates do
+          Model::ObjectPointer.create(
+            :source => Util.sha1_to_bytes(source),
+            :target => Util.sha1_to_bytes(target)
+            )
+        end
+      end
     end
 
     def parse_commit(data)
@@ -128,7 +102,7 @@ module Anygit
         when 'tree': tree = value
         when 'parent': parents << value
         else
-          raise "Unrecognized key: #{key.inspect} (value: #{value.inspect})" unless ['author', 'committer'].include?(key)
+          raise "Unrecognized key: #{key.inspect} (value: #{value.inspect})" unless ['author', 'committer', 'mergetag'].include?(key)
         end
       end
 
@@ -160,7 +134,13 @@ module Anygit
 
     def iterlines(data, &blk)
       # Quick and dirty. Could probably do this without the stupid
-      # regexes.
+      # regexes. This doesn't completely work (see
+      # e22057c8599373e5caef0bc42bdb95d2a361ab0d in linux-2.6.git, which has
+      #
+      # mergetag object df7a3ee29b775edd1c2d75cf0b128b174bd4091e
+      #  type commit
+      #
+      # but it's good enough.
       unless data =~ /\A(.*?)\n\n/m
         raise "Unrecognized data payload: #{data.inspect}"
       end
@@ -169,6 +149,8 @@ module Anygit
         unless line =~ /^([^ ]*?) (.*)$/
           raise "Unrecognized data payload line: #{line.inspect}"
         end
+
+        next if $1 == ''
 
         blk.call($1, $2)
       end

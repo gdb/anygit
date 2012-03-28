@@ -8,8 +8,8 @@ require 'anygit/model'
 require 'anygit/util'
 
 module Anygit
-  @@log = Logger.new(STDOUT)
-  @@log.level = Logger::DEBUG
+  @@log = Logger.new($stdout)
+  @@log.level = Logger::INFO
 
   def self.log
     @@log

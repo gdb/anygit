@@ -1,0 +1,3 @@
+#!/bin/sh
+
+$(dirname "$0")/../bin/runner /srv/anygit/bin/web-interface 2>&1 | tee -a /var/log/anygit/anygit.log

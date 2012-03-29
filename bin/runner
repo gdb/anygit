@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$(id -u)" = 0 ]; then
+  echo "Sudoing to anygit..."
+  exec sudo -H -u anygit "$0" $@
+fi
+
+LD_LIBRARY_PATH=~/projects/libgit2/build /usr/bin/bundle exec $@

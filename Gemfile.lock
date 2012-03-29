@@ -8,7 +8,7 @@ GIT
 
 GIT
   remote: git://github.com/gdb/dm-migrations
-  revision: 29aecc2875abf1432508dcb972f371bdd7b4813d
+  revision: 9029ce7cddc5920e271641cda0447ad7c903db04
   branch: gdb
   specs:
     dm-migrations (1.2.0)
@@ -79,9 +79,9 @@ GEM
     rack-protection (1.2.0)
       rack
     sinatra (1.3.2)
-      rack (~> 1.3, >= 1.3.6)
+      rack (>= 1.3.6, ~> 1.3)
       rack-protection (~> 1.2)
-      tilt (~> 1.3, >= 1.3.3)
+      tilt (>= 1.3.3, ~> 1.3)
     stringex (1.3.2)
     tilt (1.3.3)
     uuidtools (2.1.2)

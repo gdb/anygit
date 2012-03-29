@@ -1,5 +1,6 @@
 source "http://rubygems.org"
 gem 'data_mapper'
+gem 'dm-mysql-adapter'
 gem 'sinatra'
 gem 'rack'
 gem 'mysql'

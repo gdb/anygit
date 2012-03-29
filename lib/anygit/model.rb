@@ -34,6 +34,7 @@ module Anygit
 
       # Really should store the template
       def webview(type, hex_sha1)
+        raise "#{type.inspect} view not yet supported" if type == 'tree' || type == 'blob'
         return template.gsub('{sha1}', hex_sha1) if template
 
         parsed = URI.parse(url)

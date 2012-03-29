@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require 'optparse'
+require 'fileutils'
 
 require File.join(File.dirname(__FILE__), '../lib/anygit')
 
@@ -7,9 +8,10 @@ module Anygit
   class IndexPackfile
     TMPDIR_BASE = File.join(File.dirname(__FILE__), '../tmp')
 
-    def initialize(repo, path)
+    def initialize(repo, path, opts)
       @repo = repo
       @path = path
+      @opts = opts
 
       @create ||= {}
       @tmpdir = File.join(TMPDIR_BASE, "#{repo.id}-#{Time.now.to_i}-#{rand}")
@@ -22,6 +24,7 @@ module Anygit
       build_dumps
       close_files
       load_dumps
+      delete_dumps unless @opts[:dont_delete_dumps]
     end
 
     def build_dumps
@@ -67,6 +70,11 @@ module Anygit
         # TODO: use better subprocess interface
         `mysql -u root anygit < #{path}`
       end
+    end
+
+    def delete_dumps
+      Anygit.log.info("Deleting tmpdir (#{@tmpdir})")
+      FileUtils.rm_r(@tmpdir)
     end
 
     private
@@ -247,6 +255,10 @@ def main
     opts.on('-c', '--create-repo', 'Create repo by url if it does not exist') do
       options[:create_repo] = true
     end
+
+    opts.on('-d', '--dont-delete-dumps', 'Leave dumps lying around') do
+      options[:dont_delete_dumps] = true
+    end
   end
   optparse.parse!
 
@@ -266,7 +278,7 @@ def main
     repo = Anygit::Model::Repo.get!(:url => url)
   end
 
-  runner = Anygit::IndexPackfile.new(repo, path)
+  runner = Anygit::IndexPackfile.new(repo, path, :dont_delete_dumps => options[:dont_delete_dumps])
   runner.run
   return 0
 end

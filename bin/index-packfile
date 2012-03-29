@@ -12,7 +12,10 @@ module Anygit
       @path = path
 
       @create ||= {}
-      @tmpdir = Dir.mkdir(File.join(TMPDIR_BASE, "#{repo.id}-#{Time.now.to_i}-#{rand}"))
+      @tmpdir = File.join(TMPDIR_BASE, "#{repo.id}-#{Time.now.to_i}-#{rand}")
+
+      Anygit.log.info("Storing mysql outfiles in #{@tmpdir}")
+      Dir.mkdir(@tmpdir)
     end
 
     def run

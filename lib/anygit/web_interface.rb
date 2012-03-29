@@ -30,7 +30,6 @@ module Anygit
 
         op_name = Util.validate_table_name(Anygit::Model::ObjectPointer.storage_name)
         go_name = Util.validate_table_name(Anygit::Model::GitObject.storage_name)
-        puts "ZOMBIE!"
         # TODO: paginate, filter by type
         @raw_pointers = repository(:default).adapter.select("
 SELECT b.sha1, b.type
@@ -40,7 +39,6 @@ WHERE a.target = ?
 LIMIT ?
 ", object.sha1, @limit)
         @git_objects = @raw_pointers.map do |pointer|
-          puts "ZOOM ZOOH ZOOM!"
           go = Model::GitObject.new
           go.sha1 = pointer.sha1
           go.type = pointer.type

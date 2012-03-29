@@ -5,12 +5,23 @@ require File.join(File.dirname(__FILE__), '../lib/anygit')
 
 module Anygit
   class IndexPackfile
+    TMPDIR_BASE = File.join(File.dirname(__FILE__), '../tmp')
+
     def initialize(repo, path)
       @repo = repo
       @path = path
+
+      @create ||= {}
+      @tmpdir = Dir.mkdir(TMPDIR_BASE, "#{repo.id}-#{Time.now.to_i}-#{rand}")
     end
 
     def run
+      build_dumps
+      close_files
+      load_dumps
+    end
+
+    def build_dumps
       start = Time.now
 
       Rugged::Index.iterate_packfile(@path) do |processed, total, type, sha1, data|
@@ -18,7 +29,8 @@ module Anygit
           elapsed = Time.now - start
           rps = processed / elapsed
           remaining = (total - processed) / rps
-          Anygit.log.info("Processed #{processed} / #{total} objects in #{format_time(elapsed)}. That's #{rps} records per second, so there should be about #{format_time(remaining)} remaining")
+          percent = (100.0 * processed) / total
+          Anygit.log.info("Processed #{processed} / #{total} objects (#{percent.to_i}%) in #{format_time(elapsed)}. That's #{rps} records per second, so there should be about #{format_time(remaining)} remaining")
         end
 
         store_object(type, sha1)
@@ -36,20 +48,37 @@ module Anygit
       end
     end
 
+    def close_files
+      @create.each do |table, spec|
+        path = spec[:file].path
+        Anygit.log.info("Closing file for #{table} (#{path})")
+        spec[:file].close
+      end
+    end
+
+    def load_dumps
+      @create.each do |table, spec|
+        path = spec[:file].path
+        Anygit.log.info("Loading #{table} (#{path})")
+        # TODO: use better subprocess interface
+        `mysql < #{path}`
+      end
+    end
+
     private
 
     def store_object(type, sha1)
       wrap_duplicates do
-        Model::GitObject.create(
+        create(Model::GitObject,
           :type => type,
           :sha1 => Util.sha1_to_bytes(sha1)
           )
       end
 
       wrap_duplicates do
-        Model::ObjectRepo.create(
+        create(Model::ObjectRepo,
           :sha1 => Util.sha1_to_bytes(sha1),
-          :repo => @repo
+          :repo_id => @repo.id
           )
       end
     end
@@ -62,7 +91,7 @@ module Anygit
       end
     end
 
-    # "tree 460a692e68fa98c70e92380489e547bb0ce3f499\nparent e5a9524f345692f48292ef4d1f2420697e07c193\nparent ada7ba3a1964b790eb478332dc43d6046f49dcda\nauthor Vicent Mart\303\255 <tanoku@gmail.com> 1331485158 -0700\ncommitter Vicent Mart\303\255 <tanoku@gmail.com> 1331485158 -0700\n\nMerge pull request #45 from yandy/patch-2\n\ninspect method is called recursively"
+    # "tree 460a692e68fa98c70e92380489e547bb0ce3f499\nparent e5a9524f345692f48292ef4d1f242060;95;c97e07c193\nparent ada7ba3a1964b790eb478332dc43d6046f49dcda\nauthor Vicent Mart\303\255 <tanoku@gmail.com> 1331485158 -0700\ncommitter Vicent Mart\303\255 <tanoku@gmail.com> 1331485158 -0700\n\nMerge pull request #45 from yandy/patch-2\n\ninspect method is called recursively"
     def index_commit(sha1, data)
       tree, parents = parse_commit(data)
       Anygit.log.debug("Commit #{sha1} has tree: #{tree.inspect}, parents: #{parents.inspect}")
@@ -90,7 +119,7 @@ module Anygit
     def store_pointer_records(source, targets)
       targets.each do |target|
         wrap_duplicates do
-          Model::ObjectPointer.create(
+          create(Model::ObjectPointer,
             :source => Util.sha1_to_bytes(source),
             :target => Util.sha1_to_bytes(target)
             )
@@ -162,6 +191,8 @@ module Anygit
     end
 
     def format_time(a)
+      a = a.to_i
+
       case a
       when 0 then 'no time'
       when 1 then 'a second'
@@ -175,6 +206,26 @@ module Anygit
       when 518400..1036800 then 'a week'
       else return (a/518400).to_s + ' weeks'
       end
+    end
+
+    def create(klass, data)
+      table = Util.validate_table_name(klass.storage_name)
+      keys = data.keys.sort_by {|k| k.to_s}
+      unless @create.include?(table)
+        f = File.open(File.join(@tmpdir, table + '.sql'), 'w')
+        f.write("INSERT IGNORE INTO #{table} (#{keys.map {|k| Util.sql_column_name_quote(k) }.join(', ')}) VALUES")
+        @create[table] = {:file => f, :keys => keys, :count => 0}
+      end
+
+      spec = @create[table]
+      raise "Inconsistent keys: data has keys #{keys.inspect}, while table has keys #{spec[:keys].inspect}" unless spec[:keys] == keys
+
+      if spec[:count] > 0
+        spec[:file].write(',')
+      end
+      spec[:count] += 1
+
+      spec[:file].write("(#{keys.map {|k| Util.sql_value_quote(data[k])}.join(', ')})")
     end
   end
 end

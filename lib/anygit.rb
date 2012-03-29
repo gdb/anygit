@@ -1,5 +1,8 @@
 require 'logger'
+
 require 'rubygems'
+require 'bundler/setup'
+
 require 'rugged'
 
 $:.unshift(File.dirname(__FILE__))

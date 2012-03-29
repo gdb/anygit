@@ -35,7 +35,7 @@ module Anygit
       include DataMapper::Resource
 
       property :sha1, String, SHA1_KEY_OPTS
-      property :type, Enum[:commit, :type, :tag, :blob]
+      property :type, String
       property :created_at, DateTime
 
       def hex_sha1
@@ -55,7 +55,11 @@ module Anygit
     class ObjectPointer
       include DataMapper::Resource
 
-      # Requires my patches to dm-core / dm-migrations
+      # Requires my patches to dm-core / dm-migrations.
+      #
+      # Note that index isn't autocreating itself at the moment (might
+      # want to reverse order?) so run
+      # CREATE INDEX target ON anygit_model_object_pointers (target ASC)
       property :source, String, SHA1_KEY_OPTS
       property :target, String, SHA1_KEY_OPTS.merge(:index => true)
       property :created_at, DateTime

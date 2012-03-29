@@ -3,7 +3,7 @@
 <div>
 <p> Here are the first <%=h @limit %>: </p>
 
-<% @collection.each do |object| %>
-<p> <%=h object.hex_sha1 %> </p>
+<% @collection.each do |git_object| %>
+<p> <a href="/q/<%=h git_object.hex_sha1 %>"><%=h git_object.hex_sha1 %> (<%=h git_object.type %>) </a></p>
 <% end %>
 </div>

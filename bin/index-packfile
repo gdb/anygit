@@ -65,7 +65,7 @@ module Anygit
         path = spec[:file].path
         Anygit.log.info("Loading #{table} (#{path})")
         # TODO: use better subprocess interface
-        `mysql < #{path}`
+        `mysql -u root anygit < #{path}`
       end
     end
 

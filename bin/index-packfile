@@ -12,7 +12,7 @@ module Anygit
       @path = path
 
       @create ||= {}
-      @tmpdir = Dir.mkdir(TMPDIR_BASE, "#{repo.id}-#{Time.now.to_i}-#{rand}")
+      @tmpdir = Dir.mkdir(File.join(TMPDIR_BASE, "#{repo.id}-#{Time.now.to_i}-#{rand}"))
     end
 
     def run
@@ -26,11 +26,12 @@ module Anygit
 
       Rugged::Index.iterate_packfile(@path) do |processed, total, type, sha1, data|
         if processed % 100 == 0
-          elapsed = Time.now - start
-          rps = processed / elapsed
-          remaining = (total - processed) / rps
-          percent = (100.0 * processed) / total
-          Anygit.log.info("Processed #{processed} / #{total} objects (#{percent.to_i}%) in #{format_time(elapsed)}. That's #{rps} records per second, so there should be about #{format_time(remaining)} remaining")
+          if (elapsed = Time.now - start) > 0.1
+            rps = processed / elapsed
+            remaining = (total - processed) / rps
+            percent = (100.0 * processed) / total
+            Anygit.log.info("Processed #{processed} / #{total} objects (#{percent.to_i}%) in #{format_time(elapsed)}. That's #{rps} records per second, so there should be about #{format_time(remaining)} remaining")
+          end
         end
 
         store_object(type, sha1)

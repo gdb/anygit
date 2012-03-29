@@ -1,4 +1,6 @@
-<p> There are <b><%=h @collection.count %></b> possible objects starting with <%=h @sha1 %> </p>
+<% if @collection.count > 0 %>
+<p> There are <b><%=h @collection.count %></b> indexed objects<% if @sha1 %> starting with <%=h @sha1 %><% end %>.
+</p>
 
 <div>
 <p> Here are the first <%=h @limit %>: </p>
@@ -7,3 +9,6 @@
 <p> <a href="/q/<%=h git_object.hex_sha1 %>"><%=h git_object.hex_sha1 %> (<%=h git_object.type %>) </a></p>
 <% end %>
 </div>
+<% else %>
+<p> There are <b>no</b> objects starting with <%=h @sha1 %>, sorry to say. </p>
+<% end %>

@@ -30,7 +30,7 @@ module Anygit
     def build_dumps
       start = Time.now
 
-      Rugged::Index.iterate_packfile(@path) do |processed, total, type, sha1, data|
+      Rugged::Index.iterate_packfile(@path) do |processed, total, type, sha1|
         if processed % 100 == 0
           if (elapsed = Time.now - start) > 0.1
             rps = processed / elapsed
@@ -42,16 +42,19 @@ module Anygit
 
         store_object(type, sha1)
 
-        # TODO: have iterate_packfile pass through git objects, and/or
-        # add a parsing interface to Rugged.
-        case type
-        when :commit: index_commit(sha1, data)
-        when :tree: index_tree(sha1, data)
-        when :tag: index_tag(sha1, data)
-        when :blob: index_blob(sha1)
-        else
-          raise "Invalid type: #{type.inspect}"
-        end
+        # Disabling indexing of the arrows, since all we care about
+        # right now is mapping of objects -> containing repos
+        #
+        # # TODO: have iterate_packfile pass through git objects, and/or
+        # # add a parsing interface to Rugged.
+        # case type
+        # when :commit: index_commit(sha1, data)
+        # when :tree: index_tree(sha1, data)
+        # when :tag: index_tag(sha1, data)
+        # when :blob: index_blob(sha1)
+        # else
+        #   raise "Invalid type: #{type.inspect}"
+        # end
       end
     end
 
@@ -275,7 +278,7 @@ def main
   if options[:create_repo]
     repo = Anygit::Model::Repo.first_or_create(:url => url)
   else
-    repo = Anygit::Model::Repo.get!(:url => url)
+    repo = Anygit::Model::Repo.first(:url => url)
   end
 
   runner = Anygit::IndexPackfile.new(repo, path, :dont_delete_dumps => options[:dont_delete_dumps])

@@ -1,0 +1,47 @@
+GIT
+  remote: git://github.com/gdb/dm-core
+  revision: cf0cee71aa77611a069c4839886983f882053ebd
+  branch: gdb
+  specs:
+    dm-core (1.2.0)
+      addressable (~> 2.2.6)
+
+GIT
+  remote: git://github.com/gdb/dm-migrations
+  revision: 29aecc2875abf1432508dcb972f371bdd7b4813d
+  branch: gdb
+  specs:
+    dm-migrations (1.2.0)
+      dm-core (~> 1.2.0)
+
+GIT
+  remote: git://github.com/gdb/rugged
+  revision: 3d959dd0c66dfc718e4548d00cdb620b408dd1c5
+  branch: gdb
+  specs:
+    rugged (0.16.0)
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    addressable (2.2.7)
+    mysql (2.8.1)
+    rack (1.4.1)
+    rack-protection (1.2.0)
+      rack
+    sinatra (1.3.2)
+      rack (~> 1.3, >= 1.3.6)
+      rack-protection (~> 1.2)
+      tilt (~> 1.3, >= 1.3.3)
+    tilt (1.3.3)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  dm-core!
+  dm-migrations!
+  mysql
+  rack
+  rugged!
+  sinatra

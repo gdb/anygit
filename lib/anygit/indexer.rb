@@ -7,6 +7,14 @@ module Anygit::Indexer
       ip = IndexPackfile.new(repo, path, opts)
       ip.run
     end
+    repo.needs_index = 'false'
+    repo.save
+  end
+
+  def self.run_all(opts={})
+    Anygit::Model::Repo.all(:needs_index => 'true').each do |repo|
+      run(repo, opts)
+    end
   end
 
   module Common

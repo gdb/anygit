@@ -29,6 +29,8 @@ module Anygit
       # TODO: support aliasing
       property :url, String, :length => 3000
       property :template, String, :length => 3000
+      # Actually just true/false
+      property :needs_index, String, :index => true, :default => 'false'
       property :created_at, DateTime
       property :fetched_at, DateTime
 
@@ -70,18 +72,5 @@ module Anygit
       belongs_to :repo, :key => true
       property :created_at, DateTime
     end
-
-    # class ObjectPointer
-    #   include DataMapper::Resource
-
-    #   # Requires my patches to dm-core / dm-migrations.
-    #   #
-    #   # Note that index isn't autocreating itself at the moment (might
-    #   # want to reverse order?) so run
-    #   # CREATE INDEX target ON anygit_model_object_pointers (target ASC)
-    #   property :source, String, SHA1_KEY_OPTS
-    #   property :target, String, SHA1_KEY_OPTS.merge(:index => true)
-    #   property :created_at, DateTime
-    # end
   end
 end

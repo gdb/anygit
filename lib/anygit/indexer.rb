@@ -2,18 +2,27 @@ module Anygit::Indexer
   TMPDIR_BASE = File.join(File.dirname(__FILE__), '../../tmp')
 
   def self.run(repo, opts={})
+    Anygit.log.info("About to index #{repo}")
+
     fp = FetchPackfile.new(repo, opts)
     fp.run do |repo, path|
       ip = IndexPackfile.new(repo, path, opts)
       ip.run
     end
-    repo.needs_index = 'false'
+    repo.index_state = 'indexed'
+    repo.been_indexed = 'true'
     repo.save
   end
 
   def self.run_all(opts={})
-    Anygit::Model::Repo.all(:needs_index => 'true').each do |repo|
-      run(repo, opts)
+    Anygit::Model::Repo.all(:index_state => 'pending').each do |repo|
+      begin
+        run(repo, opts)
+      rescue StandardError => e
+        Anygit.log.error("Error indexing #{repo}: #{e} (#{e.class})\n  #{e.backtrace.join("\n  ")}")
+        repo.index_state = 'failed'
+        repo.save
+      end
     end
   end
 

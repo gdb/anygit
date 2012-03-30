@@ -1,0 +1,50 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'fileutils'
+
+require File.join(File.dirname(__FILE__), '../lib/anygit')
+
+def main
+  options = {}
+  optparse = OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} [options] <url>"
+
+    opts.on('-h', '--help', 'Display this message') do
+      puts opts
+      exit(1)
+    end
+
+    opts.on('-d', '--dont-delete', 'Leave dumps lying around') do
+      options[:dont_delete] = true
+    end
+
+    opts.on('-l', '--loop-forever', 'Loop') do
+      options[:loop_forever] = true
+    end
+  end
+  optparse.parse!
+
+  if ARGV.length != 0
+    puts optparse
+    return 1
+  end
+
+  Anygit::Model.init
+
+  while true
+    Anygit::Indexer.run_all(:dont_delete => options[:dont_delete])
+    break unless options[:loop_forever]
+    # Really want some notification from the web interface, but meh.
+    sleep(5)
+  end
+  return 0
+end
+
+if $0 == __FILE__
+  ret = main
+  begin
+    exit(ret)
+  rescue TypeError
+    exit(0)
+  end
+end

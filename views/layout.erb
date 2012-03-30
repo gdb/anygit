@@ -12,6 +12,14 @@
           Welcome to <a href="/">anygit</a>, indexing the world's git repositories.
         </div>
 
+<% if @flash %>
+        <div class="flash">
+          <ul id="flash-messages">
+            <li><%=h @flash %></li>
+          </ul>
+        </div>
+<% end %>
+
         <div class="body">
           <%= yield %>
         </div>

@@ -1,0 +1,84 @@
+<script type="text/javascript">
+	function setfocus(elt) { document.getElementById(elt).focus(); }
+	
+	function expand() {
+		urlbox = document.getElementById('url');
+		text = urlbox.value;
+		parent = urlbox.parentNode;
+		parent.removeChild(urlbox);
+		if(urlbox.nodeName.toLowerCase() == 'input') {
+			urlbox = document.createElement('textarea');
+			urlbox.setAttribute('cols', '20');
+			urlbox.setAttribute('rows', '5');
+			document.getElementById('expand').innerHTML = '&#9650;';
+		} else {
+			urlbox = document.createElement('input');
+			urlbox.setAttribute('type', 'text');
+			urlbox.setAttribute('size', '20');
+			document.getElementById('expand').innerHTML = '&#9660;';
+		}
+		urlbox.setAttribute('id', 'url');
+		urlbox.setAttribute('name', 'url');
+		urlbox.setAttribute('title', 'URL of the repository');
+		urlbox.value = text;
+		parent.insertBefore(urlbox, document.getElementById('submit').previousSibling);
+	}
+</script>
+
+<table><tr><td>
+
+<div class="box" id="current">
+	<div class="info"><h2>Currently indexed:</h2></div>
+	<div id="repo"><b><%= @repo_count %></b> repos
+		<img src="/static/git-repo.png" onclick="setfocus('url');"></div>
+	<div id="blob"><b><%= @blob_count %></b> blobs
+		<img src="/static/git-blob.png" onclick="setfocus('sha1');"></div>
+	<div id="tree"><b><%= @tree_count %></b> trees
+		<img src="/static/git-tree.png" onclick="setfocus('sha1');"></div>
+	<div id="commit"><b><%= @commit_count %></b> commits
+		<img src="/static/git-commit.png" onclick="setfocus('sha1');"></div>
+	<div id="tag"><b><%= @tag_count %></b> tags
+		<img src="/static/git-tag.png" onclick="setfocus('sha1');"></div>
+</div>
+
+</td><td>
+
+<div class="box" id="request">
+	<div class="info"><h2>Request indexing:</h2></div>
+	<div id="add">
+		<p>Would you like your repository to be added to the index? Enter the Git URL here.</p>
+		<form action="/repos" method="POST">
+		<p> <label for="url">URL of the repository</label> <input type="text" name="url" id="url" /> </p>
+		<p> <input type="submit" value="Submit" />
+		</form>
+	</div>
+</div>
+
+<div class="box" id="search">
+	<div class="info"><h2>Object lookup:</h2></div>
+	<div id="sha">
+		<p>You can query for any Git object by going to <b>http://anyg.it/q/$sha1prefix</b>.</p>
+		<p>Alternatively, just enter your SHA1 prefix in the textfield:</p>
+		<form action="/q" method="GET">
+		<p> <label for="sha1">SHA-1 prefix to search for</label> <input type="text" name="sha1" id="sha1" /> </p>
+		<p> <input type="submit" value="Query" />
+		</form>
+	</div>
+</div>
+
+</td><td>
+
+<div class="box" id="stats">
+	<div class="info"><h2>Largest repositories:</h2></div>
+	<div id="largest">
+		<ol>
+<% @largest_repos.each do |stat| %>
+		<li> <b><%=h stat.url %></b><br />with <b><%=h stat.count %></b> git objects </li>
+<% end %>
+		</ol>
+	</div>
+</div>
+
+</td></tr></table>
+
+<br />

@@ -29,8 +29,9 @@ module Anygit
       # TODO: support aliasing
       property :url, String, :length => 3000
       property :template, String, :length => 3000
-      # Actually just true/false
-      property :needs_index, String, :index => true, :default => 'false'
+      property :index_state, String, :default => 'unstarted'
+      # Should really just be a bool
+      property :been_indexed, String, :index => true, :default => 'false'
       property :created_at, DateTime
       property :fetched_at, DateTime
 
@@ -56,7 +57,7 @@ module Anygit
       include DataMapper::Resource
 
       property :sha1, String, SHA1_KEY_OPTS
-      property :type, String
+      property :type, String, :index => true
       property :created_at, DateTime
 
       def hex_sha1
@@ -71,6 +72,12 @@ module Anygit
       property :sha1, String, SHA1_KEY_OPTS
       belongs_to :repo, :key => true
       property :created_at, DateTime
+
+      def self.most_popular(limit)
+        or_name = Util.validate_table_name(ObjectRepo.storage_name)
+        r_name = Util.validate_table_name(Repo.storage_name)
+        repository(:default).adapter.select("SELECT b.url, a.repo_id, COUNT(*) as count FROM #{or_name} AS a JOIN #{r_name} AS b ON a.repo_id = b.id GROUP BY repo_id ORDER BY count DESC LIMIT ?", limit)
+      end
     end
   end
 end

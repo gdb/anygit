@@ -7,30 +7,73 @@ module Anygit
     LIMIT = 10
     set :root, Pathname.new(File.join(File.dirname(__FILE__), '../..')).realpath
 
-    get '/q/?' do
-      @limit = LIMIT
-      @collection = Model::GitObject.all(:limit => @limit)
-      @sha1 = nil
-      erb :q_many
+    get '/' do
+      index
     end
 
-    get '/q/:sha1' do
+    post '/repos' do
+      query = {:url => params[:url]}
+
+      if r = Model::Repo.first(query)
+        if r.index_state == 'pending'
+          @flash = "Repo at #{r.url} is already marked for indexing; have no fear--we will get to it."
+        elsif r.index_state == 'indexed'
+          @flash = "Marking repo at #{r.url} for reindexing"
+        elsif r.index_state == 'failed'
+          @flash = "Last attempt to index repo at #{r.url} failed, but I'll try again."
+        else
+          raise "Invalid indexing state: #{r.index_state} for #{r}"
+        end
+      else
+        r = Model::Repo.create(query)
+        @flash = "Adding repo at #{r.url} to the index"
+      end
+
+      r.index_state = 'pending'
+      r.save
+
+      # Too lazy to actually add the flash
+      index
+    end
+
+    def index
+      # Could do more efficiently via group_by I think.
+      @repo_count = Model::Repo.count(:been_indexed => 'true')
+      @commit_count = Model::GitObject.count(:type => 'commit')
+      @tree_count = Model::GitObject.count(:type => 'tree')
+      @blob_count = Model::GitObject.count(:type => 'blob')
+      @tag_count = Model::GitObject.count(:type => 'tag')
+
+      @largest_repos = Model::ObjectRepo.most_popular(5)
+      erb :index
+    end
+
+    get '/about' do
+      erb :about
+    end
+
+    get '/q/?:sha1?' do
       @limit = LIMIT
-      @sha1 = sha1 = params[:sha1]
+      @sha1 = sha1 = params[:sha1] || ''
 
       if sha1.length > 40
         halt 400, "SHA1s must be no more than 40 characters"
-      elsif sha1 !~ /^[a-f0-9]+$/
+      elsif sha1 !~ /^[a-f0-9]*$/
         halt 400, "SHA1s must be in hex"
       end
 
-      binary_sha1 = Util.sha1_to_bytes(sha1)
-      if upper = upper_bound(binary_sha1)
-        Anygit.log.info("Querying for objects bounded between [#{binary_sha1.inspect}, #{upper.inspect})")
-        @collection = Model::GitObject.all(:sha1.gte => binary_sha1, :sha1.lt => upper, :limit => @limit)
+      if sha1 == ''
+        Anygit.log.info("Querying for all objects")
+        @collection = Model::GitObject.all(:limit => @limit)
       else
-        Anygit.log.info("Querying for objects bounded below by #{binary_sha1.inspect}")
-        @collection = Model::GitObject.all(:sha1.gte => binary_sha1, :limit => @limit)
+        binary_sha1 = Util.sha1_to_bytes(sha1)
+        if upper = upper_bound(binary_sha1)
+          Anygit.log.info("Querying for objects bounded between [#{binary_sha1.inspect}, #{upper.inspect})")
+          @collection = Model::GitObject.all(:sha1.gte => binary_sha1, :sha1.lt => upper, :limit => @limit)
+        else
+          Anygit.log.info("Querying for objects bounded below by #{binary_sha1.inspect}")
+          @collection = Model::GitObject.all(:sha1.gte => binary_sha1, :limit => @limit)
+        end
       end
 
       if @collection.count == 1
@@ -43,26 +86,6 @@ module Anygit
         dest = repo.webview(object.type, object.hex_sha1)
         Anygit.log.info("Redirecting to #{dest}")
         redirect(dest)
-
-# Might be useful if we start indexing all the arrows
-#
-#         op_name = Util.validate_table_name(Anygit::Model::ObjectPointer.storage_name)
-#         go_name = Util.validate_table_name(Anygit::Model::GitObject.storage_name)
-#         # TODO: paginate, filter by type
-#         @raw_pointers = repository(:default).adapter.select("
-# SELECT b.sha1, b.type
-# FROM #{op_name} AS a LEFT JOIN #{go_name} AS b
-# ON a.source = b.sha1
-# WHERE a.target = ?
-# LIMIT ?
-# ", object.sha1, @limit)
-#         @git_objects = @raw_pointers.map do |pointer|
-#           go = Model::GitObject.new
-#           go.sha1 = pointer.sha1
-#           go.type = pointer.type
-#           go
-#         end
-#        erb :q_one
       else
         erb :q_many
       end

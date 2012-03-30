@@ -1,0 +1,54 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'fileutils'
+
+require File.join(File.dirname(__FILE__), '../lib/anygit')
+
+def main
+  options = {}
+  optparse = OptionParser.new do |opts|
+    opts.banner = "Usage: #{$0} [options] <url>"
+
+    opts.on('-h', '--help', 'Display this message') do
+      puts opts
+      exit(1)
+    end
+
+    opts.on('-c', '--create-repo', 'Create repo by url if it does not exist') do
+      options[:create_repo] = true
+    end
+
+    opts.on('-d', '--dont-delete', 'Leave dumps lying around') do
+      options[:dont_delete] = true
+    end
+  end
+  optparse.parse!
+
+  if ARGV.length != 1
+    puts optparse
+    return 1
+  end
+
+  url = ARGV[0]
+
+  Anygit::Model.init
+
+  if options[:create_repo]
+    repo = Anygit::Model::Repo.first_or_create(:url => url)
+  else
+    repo = Anygit::Model::Repo.first(:url => url)
+    raise "No repo found" unless repo
+  end
+
+  Anygit::Indexer.run(repo, :dont_delete => options[:dont_delete])
+  return 0
+end
+
+if $0 == __FILE__
+  ret = main
+  begin
+    exit(ret)
+  rescue TypeError
+    exit(0)
+  end
+end

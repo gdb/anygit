@@ -24,7 +24,7 @@ module Anygit
       build_dumps
       close_files
       load_dumps
-      delete_dumps unless @opts[:dont_delete_dumps]
+      delete_dumps unless @opts[:dont_delete]
     end
 
     def build_dumps
@@ -259,8 +259,8 @@ def main
       options[:create_repo] = true
     end
 
-    opts.on('-d', '--dont-delete-dumps', 'Leave dumps lying around') do
-      options[:dont_delete_dumps] = true
+    opts.on('-d', '--dont-delete', 'Leave dumps lying around') do
+      options[:dont_delete] = true
     end
   end
   optparse.parse!
@@ -279,9 +279,10 @@ def main
     repo = Anygit::Model::Repo.first_or_create(:url => url)
   else
     repo = Anygit::Model::Repo.first(:url => url)
+    raise "No repo found" unless repo
   end
 
-  runner = Anygit::IndexPackfile.new(repo, path, :dont_delete_dumps => options[:dont_delete_dumps])
+  runner = Anygit::IndexPackfile.new(repo, path, :dont_delete => options[:dont_delete])
   runner.run
   return 0
 end

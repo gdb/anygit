@@ -5,4 +5,4 @@ if [ "$(id -u)" = 0 ]; then
   exec sudo -H -u anygit "$0" $@
 fi
 
-LD_LIBRARY_PATH=~/projects/libgit2/build exec ruby $@
+RACK_ENV=production LD_LIBRARY_PATH=~/projects/libgit2/build exec ruby $@

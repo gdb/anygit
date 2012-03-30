@@ -1,0 +1,4 @@
+#!/bin/sh
+
+BASE="$(dirname "$0")/.."
+"$BASE/bin/runner" "$BASE/bin/index-all" -l 2>&1 | tee -a /var/log/anygit/index-daemon.log
